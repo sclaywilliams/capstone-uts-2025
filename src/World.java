@@ -39,15 +39,15 @@ public class World {
 
     // basic Euclidean distance calc 
     public double getRobotSeparationDistance(Robot robot1, Robot robot2) {
-        return Math.sqrt(Math.pow(robot1.pos_x - robot2.pos_x, 2) + Math.pow(robot1.pos_y - robot2.pos_y, 2));
+        return Math.sqrt(Math.pow(robot1.posX - robot2.posX, 2) + Math.pow(robot1.posY - robot2.posY, 2));
     }
 
     // returns [x, y] to the closest boundary
     public double[] getWorldBoundaryDistance(Robot robot, WorldBoundary worldBoundary) {
-        double leftDist = robot.pos_x - worldBoundary.min_x;
-        double rightDist = robot.pos_x - worldBoundary.max_x;
-        double bottomDist = robot.pos_y - worldBoundary.min_y;
-        double topDist = robot.pos_y - worldBoundary.max_y;
+        double leftDist = robot.posX - worldBoundary.min_x;
+        double rightDist = robot.posX - worldBoundary.max_x;
+        double bottomDist = robot.posY - worldBoundary.min_y;
+        double topDist = robot.posY - worldBoundary.max_y;
 
         double[] worldBoundaryDistance = new double[2];
         if (Math.abs(leftDist) < Math.abs(rightDist)) {
@@ -66,7 +66,7 @@ public class World {
     }
 
     public ArrayList<Robot> getLocalRobots(Robot origin, ArrayList<Robot> robots) {
-        double commDistance = origin.communicationDistance + 50;
+        double commDistance = origin.communicationDistance;
         ArrayList<Robot> localRobots = new ArrayList<Robot>();
         for (Robot robot : robots) {
             if (getRobotSeparationDistance(robot, origin) <= commDistance) {
@@ -76,37 +76,37 @@ public class World {
         return localRobots;
     }
     
-    // used to sum vectors of local robots contained within "maxSeparation"
-    public double[] getLocalVectorSum(Robot origin, ArrayList<Robot> robots, double maxSeparation) {
+    // used to sum vectors of local robots contained within "communicationDistance"
+    public double[] getLocalVectorSum(Robot origin, ArrayList<Robot> robots, double communicationDistance) {
         double[] vectorSum = new double[2];
         for (Robot robot : robots) {
-            if (getRobotSeparationDistance(origin, robot) <= maxSeparation) {
-                vectorSum[0] += origin.pos_x - robot.pos_x;
-                vectorSum[1] += origin.pos_y - robot.pos_y;
+            if (getRobotSeparationDistance(origin, robot) <= communicationDistance) {
+                vectorSum[0] += origin.posX - robot.posX;
+                vectorSum[1] += origin.posY - robot.posY;
             }
         }
         
         return vectorSum;
     }
     
-    public double[] getWeightedLocalVectorSum(Robot origin, ArrayList<Robot> robots, double maxSeparation) {
+    public double[] getWeightedLocalVectorSum(Robot origin, ArrayList<Robot> robots, double communicationDistance) {
         double[] weightedVectorSum = new double[2];
 
         // local robot influence
         for (Robot robot : robots) {
             double separation = getRobotSeparationDistance(origin, robot);
-            if (separation <= maxSeparation) {
-                weightedVectorSum[0] += (maxSeparation - separation) * (origin.pos_x - robot.pos_x);
-                weightedVectorSum[1] += (maxSeparation - separation) * (origin.pos_y - robot.pos_y);
+            if (separation <= communicationDistance) {
+                weightedVectorSum[0] += (communicationDistance - separation) * (origin.posX - robot.posX);
+                weightedVectorSum[1] += (communicationDistance - separation) * (origin.posY - robot.posY);
             }
         }
         // world boundary repulsion
         double[] worldBoundaryDistance = getWorldBoundaryDistance(origin, worldBoundary);
-        if (Math.abs(worldBoundaryDistance[0]) <= maxSeparation) {
-            weightedVectorSum[0] += (maxSeparation - Math.abs(worldBoundaryDistance[0])) * worldBoundaryDistance[0];
+        if (Math.abs(worldBoundaryDistance[0]) <= communicationDistance) {
+            weightedVectorSum[0] += (communicationDistance - Math.abs(worldBoundaryDistance[0])) * worldBoundaryDistance[0];
         }
-        if (Math.abs(worldBoundaryDistance[1]) <= maxSeparation) {
-            weightedVectorSum[1] += (maxSeparation - Math.abs(worldBoundaryDistance[1])) * worldBoundaryDistance[1];
+        if (Math.abs(worldBoundaryDistance[1]) <= communicationDistance) {
+            weightedVectorSum[1] += (communicationDistance - Math.abs(worldBoundaryDistance[1])) * worldBoundaryDistance[1];
         }
 
         return weightedVectorSum;

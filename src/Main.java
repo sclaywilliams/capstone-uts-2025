@@ -27,16 +27,23 @@ class ShapeDrawingComponent extends JComponent {
             for (Robot robot : robots) {
                 // draw robot
                 g2d.setColor(Color.red);
-                g2d.drawOval((int) robot.pos_x - robotSize/2, (int) robot.pos_y - robotSize/2, robotSize, robotSize);
-                g2d.fillOval((int) robot.pos_x - robotSize/2, (int) robot.pos_y - robotSize/2, robotSize, robotSize);
+                g2d.drawOval((int) robot.posX - robotSize/2, (int) robot.posY - robotSize/2, robotSize, robotSize);
+                g2d.fillOval((int) robot.posX - robotSize/2, (int) robot.posY - robotSize/2, robotSize, robotSize);
 
                 // draw communication lines
-                g2d.setColor(Color.green);
+//                g2d.setColor(Color.green);
                 ArrayList<Robot> localRobots = world.getLocalRobots(robot, robots);
-                System.out.println("Robot " + robot.id + " local robots: " + localRobots.toString());
+//                System.out.println("Robot " + robot.id + " local robots: " + localRobots.toString());
                 for (Robot localRobot : localRobots) {
                     if (robot != localRobot) {
-                        g2d.drawLine((int) robot.pos_x,(int) robot.pos_y, (int) localRobot.pos_x, (int) localRobot.pos_y);
+                        int distance = (int) world.getRobotSeparationDistance(robot, localRobot);
+//                        System.out.println("Distance: " + distance);
+                        double distanceColor = Utils.clampDouble(((distance) / (robot.communicationDistance)) * 255, 0, 255);
+//                        System.out.println("DistanceColor: " + distanceColor);
+                        Color lineColor = new Color(255 - (int) distanceColor, (int) distanceColor, 0);
+//                        Color lineColor = new Color((int) distanceColor,255 - (int) distanceColor, 0);
+                        g2d.setColor(lineColor);
+                        g2d.drawLine((int) robot.posX,(int) robot.posY, (int) localRobot.posX, (int) localRobot.posY);
                     }
 
                 }
@@ -53,37 +60,39 @@ public class Main {
         world.createRobots(14, 14);
 
         // TODO: remove double definition (use robot intrinsic)
-        double maxSeparation = 50;
+        double communicationDistance = 50;
+
+//        System.out.println();
 
         ArrayList<Robot> robots = world.robots;
 
         // move robots //
         for (int i = 0; i < 1000; i++) {
             for (Robot robot : robots) {
-                double[] vectorSum = world.getWeightedLocalVectorSum(robot, robots, maxSeparation);
+                double[] vectorSum = world.getWeightedLocalVectorSum(robot, robots, communicationDistance);
                 double vectorMagnitude = Math.sqrt(Math.pow(vectorSum[0], 2) + Math.pow(vectorSum[1], 2));
 
                 // robot move calc
                 if (vectorMagnitude > 0) {
-                    robot.pos_x += (maxSeparation / vectorMagnitude) * vectorSum[0];
-                    robot.pos_y += (maxSeparation / vectorMagnitude) * vectorSum[1];
+                    robot.posX += (communicationDistance / vectorMagnitude) * vectorSum[0];
+                    robot.posY += (communicationDistance / vectorMagnitude) * vectorSum[1];
                 }
 
                 // boundary clamping
-                if (robot.pos_x < world.worldBoundary.min_x) {
-                    robot.pos_x = world.worldBoundary.min_x;
+                if (robot.posX < world.worldBoundary.min_x) {
+                    robot.posX = world.worldBoundary.min_x;
                 }
-                if (robot.pos_y < world.worldBoundary.min_y) {
-                    robot.pos_y = world.worldBoundary.min_y;
+                if (robot.posY < world.worldBoundary.min_y) {
+                    robot.posY = world.worldBoundary.min_y;
                 }
-                if (robot.pos_x > world.worldBoundary.max_x) {
-                    robot.pos_x = world.worldBoundary.max_x;
+                if (robot.posX > world.worldBoundary.max_x) {
+                    robot.posX = world.worldBoundary.max_x;
                 }
-                if (robot.pos_y > world.worldBoundary.max_y) {
-                    robot.pos_y = world.worldBoundary.max_y;
+                if (robot.posY > world.worldBoundary.max_y) {
+                    robot.posY = world.worldBoundary.max_y;
                 }
 
-//                System.out.println(robot.id + " " + robot.pos_x);
+//                System.out.println(robot.id + " " + robot.posX);
             }
         }
 

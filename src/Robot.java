@@ -1,14 +1,14 @@
 public class Robot {
 
     public int id;
-    double pos_x;
-    double pos_y;
+    double posX;
+    double posY;
     double communicationDistance;
 
-    public Robot(int id, double pos_x, double pos_y) {
+    public Robot(int id, double posX, double posY) {
         this.id = id;
-        this.pos_x = pos_x;
-        this.pos_y = pos_y;
-        this.communicationDistance = 50;
+        this.posX = posX;
+        this.posY = posY;
+        this.communicationDistance = 100;
     }
 }
