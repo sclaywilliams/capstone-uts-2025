@@ -2,12 +2,13 @@ import java.util.ArrayList;
 
 public class World {
 
-    // intrinsics //
-    public WorldBoundary worldBoundary;
-    public ArrayList<Robot> robots;
+    // instance variables //
 
+    private WorldBoundary worldBoundary;
+    private ArrayList<Robot> robots;
     
     // constructors //
+
     public World(ArrayList<Robot> robots) {
         this.worldBoundary = new WorldBoundary();
         this.robots = robots;
@@ -16,20 +17,34 @@ public class World {
     public World() {
         this.worldBoundary = new WorldBoundary();
     }
+
+    // getters //
+
+    public WorldBoundary getWorldBoundary() {
+        return worldBoundary;
+    }
+
+    public ArrayList<Robot> getRobots() {
+        return robots;
+    }
+
+    // setters //
+
+    public void setWorldBoundary(WorldBoundary worldBoundary) {
+        this.worldBoundary = worldBoundary;
+    }
     
-    
-    
-    // functions //
+    // helpers //
 
     // creates and places robots
-    public void createRobots(int rows, int columns) {
-        int spacing = 10;
-        int margin = 50;
+    public void createRobots(int rows, int columns, int spacing, int margin) {
         ArrayList<Robot> robots = new ArrayList<Robot>();
         int robotId = 0;
         for (int row = 0; row < rows; row++) {
             for (int column = 0; column < columns; column++) {
-                Robot robot = new Robot(robotId, margin + spacing * row, margin + spacing * column);
+                int randomNudge = (int) (Math.random() * 10);
+//                randomNudge = 0;
+                Robot robot = new Robot(robotId, margin + spacing * row + randomNudge, margin + spacing * column + randomNudge);
                 robots.add(robot);
                 robotId++;
             }
@@ -39,15 +54,19 @@ public class World {
 
     // basic Euclidean distance calc 
     public double getRobotSeparationDistance(Robot robot1, Robot robot2) {
-        return Math.sqrt(Math.pow(robot1.posX - robot2.posX, 2) + Math.pow(robot1.posY - robot2.posY, 2));
+        return Math.sqrt(Math.pow(robot1.getPosX() - robot2.getPosX(), 2) + Math.pow(robot1.getPosY() - robot2.getPosY(), 2));
+    }
+
+    public Vec2D getSeparationVector(Robot robot1, Robot robot2) {
+        return new Vec2D(robot2.getPosX() - robot1.getPosX(), robot2.getPosY() - robot1.getPosY());
     }
 
     // returns [x, y] to the closest boundary
     public double[] getWorldBoundaryDistance(Robot robot, WorldBoundary worldBoundary) {
-        double leftDist = robot.posX - worldBoundary.min_x;
-        double rightDist = robot.posX - worldBoundary.max_x;
-        double bottomDist = robot.posY - worldBoundary.min_y;
-        double topDist = robot.posY - worldBoundary.max_y;
+        double leftDist = robot.getPosX() - worldBoundary.minX;
+        double rightDist = robot.getPosX() - worldBoundary.maxX;
+        double bottomDist = robot.getPosY() - worldBoundary.minY;
+        double topDist = robot.getPosY() - worldBoundary.maxY;
 
         double[] worldBoundaryDistance = new double[2];
         if (Math.abs(leftDist) < Math.abs(rightDist)) {
@@ -66,11 +85,13 @@ public class World {
     }
 
     public ArrayList<Robot> getLocalRobots(Robot origin, ArrayList<Robot> robots) {
-        double commDistance = origin.communicationDistance;
+        double commDistance = origin.getCommunicationDistance();
         ArrayList<Robot> localRobots = new ArrayList<Robot>();
         for (Robot robot : robots) {
             if (getRobotSeparationDistance(robot, origin) <= commDistance) {
-                localRobots.add(robot);
+                if (origin.getPosX() != robot.getPosX() || origin.getPosY() != robot.getPosY()) {
+                    localRobots.add(robot);
+                }
             }
         }
         return localRobots;
@@ -81,8 +102,8 @@ public class World {
         double[] vectorSum = new double[2];
         for (Robot robot : robots) {
             if (getRobotSeparationDistance(origin, robot) <= communicationDistance) {
-                vectorSum[0] += origin.posX - robot.posX;
-                vectorSum[1] += origin.posY - robot.posY;
+                vectorSum[0] += origin.getPosX() - robot.getPosX();
+                vectorSum[1] += origin.getPosY() - robot.getPosY();
             }
         }
         
@@ -96,8 +117,8 @@ public class World {
         for (Robot robot : robots) {
             double separation = getRobotSeparationDistance(origin, robot);
             if (separation <= communicationDistance) {
-                weightedVectorSum[0] += (communicationDistance - separation) * (origin.posX - robot.posX);
-                weightedVectorSum[1] += (communicationDistance - separation) * (origin.posY - robot.posY);
+                weightedVectorSum[0] += (communicationDistance - separation) * (origin.getPosX() - robot.getPosX());
+                weightedVectorSum[1] += (communicationDistance - separation) * (origin.getPosY() - robot.getPosY());
             }
         }
         // world boundary repulsion
@@ -110,6 +131,76 @@ public class World {
         }
 
         return weightedVectorSum;
+    }
+
+    public void buildSpringMesh(ArrayList<Robot> robots) {
+        // spring constants (for initial testing) //
+        double naturalSpringLength = 100.0;
+        double springStiffness = 0.1;
+        double springDamping = 0.3;
+
+        // loop through all pairs of robots //
+        for (Robot originRobot : robots) {
+            for (Robot destinationRobot : robots) {
+                // skip same robot //
+                if (destinationRobot == originRobot) {
+                    continue;
+                }
+
+                // skip if spring is already built //
+                if (originRobot.checkSprings(destinationRobot)) {
+                    continue;
+                }
+
+                boolean obtuseAngleFound = false;
+
+                // perform acute angle test //
+                for (Robot middleRobot : robots) {
+                    // skip same robots //
+                    if (middleRobot == originRobot || middleRobot == destinationRobot) {
+                        continue;
+                    }
+
+                    // get vector angle //
+                    Vec2D ab = getSeparationVector(originRobot, middleRobot);
+                    Vec2D bc = getSeparationVector(destinationRobot, middleRobot);
+                    double angle = Vec2D.getAngle(ab, bc);
+
+                    System.out.println("\nOrigin: " + originRobot);
+                    System.out.println("Destination: " + destinationRobot);
+                    System.out.println("Middle: " + middleRobot);
+
+                    System.out.println("Angle (radians): " + angle);
+                    System.out.println("Angle (degrees): " + Math.toDegrees(angle));
+
+                    // remove spring if obtuse angle is found //
+                    if (Math.toDegrees(angle) > 90 && Math.toDegrees(angle) < 270) {
+//                        originRobot.removeSpring(destinationRobot);
+//                        destinationRobot.removeSpring(originRobot);
+//                        System.out.println("Removed:");
+//                        System.out.println(originRobot + "\n" + destinationRobot + "\n-----");
+                        obtuseAngleFound = true;
+                        continue;
+                    }
+//                    System.out.println("Angle (radians): " + angle);
+//                    System.out.println("Angle (degrees): " + Math.toDegrees(angle));
+                }
+                // if all angles acute, add spring //
+                if (!obtuseAngleFound) {
+                    Spring spring = new Spring(
+                            originRobot,
+                            destinationRobot,
+                            naturalSpringLength,
+                            springStiffness,
+                            springDamping
+                    );
+                    originRobot.addSpring(spring);
+                    destinationRobot.addSpring(spring);
+                    System.out.println("Added Spring: ");
+                    System.out.println(originRobot + "\n" + destinationRobot + "\n-----");
+                }
+            }
+        }
     }
 
 }
