@@ -63,10 +63,10 @@ public class World {
 
     // returns [x, y] to the closest boundary
     public double[] getWorldBoundaryDistance(Robot robot, WorldBoundary worldBoundary) {
-        double leftDist = robot.getPosX() - worldBoundary.minX;
-        double rightDist = robot.getPosX() - worldBoundary.maxX;
-        double bottomDist = robot.getPosY() - worldBoundary.minY;
-        double topDist = robot.getPosY() - worldBoundary.maxY;
+        double leftDist = robot.getPosX() - worldBoundary.getMinX();
+        double rightDist = robot.getPosX() - worldBoundary.getMaxX();
+        double bottomDist = robot.getPosY() - worldBoundary.getMinY();
+        double topDist = robot.getPosY() - worldBoundary.getMaxY();
 
         double[] worldBoundaryDistance = new double[2];
         if (Math.abs(leftDist) < Math.abs(rightDist)) {
@@ -139,6 +139,11 @@ public class World {
         double springStiffness = 0.1;
         double springDamping = 0.3;
 
+        // remove all existing springs //
+        for (Robot robot : robots) {
+            robot.removeAllSprings();
+        }
+
         // loop through all pairs of robots //
         for (Robot originRobot : robots) {
             for (Robot destinationRobot : robots) {
@@ -166,12 +171,12 @@ public class World {
                     Vec2D bc = getSeparationVector(destinationRobot, middleRobot);
                     double angle = Vec2D.getAngle(ab, bc);
 
-                    System.out.println("\nOrigin: " + originRobot);
-                    System.out.println("Destination: " + destinationRobot);
-                    System.out.println("Middle: " + middleRobot);
-
-                    System.out.println("Angle (radians): " + angle);
-                    System.out.println("Angle (degrees): " + Math.toDegrees(angle));
+//                    System.out.println("\nOrigin: " + originRobot);
+//                    System.out.println("Destination: " + destinationRobot);
+//                    System.out.println("Middle: " + middleRobot);
+//
+//                    System.out.println("Angle (radians): " + angle);
+//                    System.out.println("Angle (degrees): " + Math.toDegrees(angle));
 
                     // remove spring if obtuse angle is found //
                     if (Math.toDegrees(angle) > 90 && Math.toDegrees(angle) < 270) {
@@ -196,11 +201,19 @@ public class World {
                     );
                     originRobot.addSpring(spring);
                     destinationRobot.addSpring(spring);
-                    System.out.println("Added Spring: ");
-                    System.out.println(originRobot + "\n" + destinationRobot + "\n-----");
+//                    System.out.println("Added Spring: ");
+//                    System.out.println(originRobot + "\n" + destinationRobot + "\n-----");
                 }
             }
         }
+    }
+
+    public Vec2D getVerticalBoundaryDistance(Robot robot) {
+        double posX = robot.getPosX();
+
+
+        return new Vec2D(0, 0);
+
     }
 
 }

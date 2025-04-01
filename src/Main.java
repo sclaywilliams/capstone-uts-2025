@@ -10,18 +10,11 @@ public class Main {
     // main //
     public static void main(String[] args) {
         World world = new World();
-        world.createRobots(5, 5, 50, 200);
+        world.createRobots(1, 2, 50, 200);
         ArrayList<Robot> robots = world.getRobots();
 
-        // build spring mesh //
-        world.buildSpringMesh(robots);
-
-        // test vector maths //
-//        Vec2D v1 = new Vec2D(1, -2);
-//        Vec2D v2 = new Vec2D(-2, 1);
-//        double angle = Vec2D.getAngle(v1, v2);
-//        System.out.println("Angle (radians): " + angle);
-//        System.out.println("Angle (degrees): " + Math.toDegrees(angle));
+        // move robots //
+        virtualSpringMesh(robots, world, 20);
 
         // draw robots //
         JFrame frame = new JFrame();
@@ -29,27 +22,6 @@ public class Main {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.getContentPane().add(new VisualOutput(world));
         frame.setVisible(true);
-
-        // move robots //
-//        virtualSpringMesh(robots, world, 10);
-
-        // timer testing //
-//        moveVectorSum(robots, world, 1000);
-//        Timer timer = new Timer();
-
-//        for (int i = 0; i < 10; i++) {
-//        int i = 0;
-//        while (i < 10) {
-//            TimerTask task = new TimerTask() {
-//                @Override
-//                public void run() {
-//                    System.out.println("Iteration: ");
-//                    virtualSpringMesh(robots, world, 1);
-//                }
-//            };
-//            timer.schedule(task, 1000L * i++);
-//        }
-
     }
 
     // robot movement functions //
@@ -74,17 +46,17 @@ public class Main {
                 }
 
                 // boundary clamping //
-                if (robot.getPosX() < world.getWorldBoundary().minX) {
-                    robot.setPosX(world.getWorldBoundary().minX);
+                if (robot.getPosX() < world.getWorldBoundary().getMinX()) {
+                    robot.setPosX(world.getWorldBoundary().getMinX());
                 }
-                if (robot.getPosY() < world.getWorldBoundary().minY) {
-                    robot.setPosY(world.getWorldBoundary().minY);
+                if (robot.getPosY() < world.getWorldBoundary().getMinY()) {
+                    robot.setPosY(world.getWorldBoundary().getMinY());
                 }
-                if (robot.getPosX() > world.getWorldBoundary().maxX) {
-                    robot.setPosX(world.getWorldBoundary().maxX);
+                if (robot.getPosX() > world.getWorldBoundary().getMaxX()) {
+                    robot.setPosX(world.getWorldBoundary().getMaxX());
                 }
-                if (robot.getPosY() > world.getWorldBoundary().maxY) {
-                    robot.setPosY(world.getWorldBoundary().maxY);
+                if (robot.getPosY() > world.getWorldBoundary().getMaxY()) {
+                    robot.setPosY(world.getWorldBoundary().getMaxY());
                 }
             }
         }
@@ -96,27 +68,54 @@ public class Main {
      * @param iterations - max number of iterations before exiting the program (ideally equilibrium is reached prior)
      */
     public static void virtualSpringMesh(ArrayList<Robot> robots, World world, int iterations) {
-        double naturalSpringLength = 100.0;
-        double springStiffness = 0.1;
-        double springDamping = 0.3;
-        //accel = (stiffness * (currentSpringLength − naturalSpringLength) * unitVec(originRobot -> connectedRobot)) − (damping * velocity)
+        // VSM Equation //
+        // accel = (stiffness * (currentSpringLength − naturalSpringLength) * unitVec(originRobot -> connectedRobot)) − (damping * velocity)
 
         for (int i = 0; i < iterations; i++) {
+            world.buildSpringMesh(robots);
             for (Robot robot : robots) {
                 ArrayList<Robot> localRobots = world.getLocalRobots(robot, robots);
 
                 for (Robot localRobot : localRobots) {
-                    Vec2D separationVector = world.getSeparationVector(robot, localRobot);
-                    double springForce = springStiffness * (separationVector.getLength() - naturalSpringLength);
-                    Vec2D dampingForce = Vec2D.multiplyMagnitude(robot.getVelocity(), springDamping);
-                    Vec2D acceleration = Vec2D.multiplyMagnitude(separationVector, springForce);
-                    acceleration = Vec2D.subtractVectors(acceleration, dampingForce);
-                    robot.addAcceleration(acceleration);
+                    // spring force //
+                    Vec2D springForce = calculateSpringForce(robot, localRobot, world);
+                    robot.addAcceleration(springForce);
+
+                    // TODO: world boundary force
+                    // obstacle avoidance //
+                    Vec2D worldBoundaryForce = calculateWorldBoundaryForce(robot, world);
                 }
                 robot.move();
             }
-//            Thread.sleep(1000);
         }
+    }
+
+    public static Vec2D calculateSpringForce(Robot r1, Robot r2, World world) {
+        Spring spring = r1.findSpring(r2);
+        if (spring == null) {
+            // if no spring, don't change acceleration //
+            return new Vec2D(0, 0);
+        }
+
+        Vec2D separationVector = world.getSeparationVector(r1, r2);
+        double springForce = spring.getStiffness() * (separationVector.getLength() - spring.getNatLength());
+        Vec2D dampingForce = Vec2D.multiplyMagnitude(r1.getVelocity(), spring.getDamping());
+        Vec2D acceleration = Vec2D.multiplyMagnitude(separationVector, springForce);
+        acceleration = Vec2D.subtractVectors(acceleration, dampingForce);
+        return acceleration;
+    }
+
+    public static Vec2D calculateWorldBoundaryForce(Robot robot, World world) {
+        Vec2D verticalForce = new Vec2D(0, 0);
+
+
+
+        Vec2D horizontalForce = new Vec2D(0, 0);
+
+
+
+        return new Vec2D(0, 0);
+
     }
 
 }

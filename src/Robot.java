@@ -25,7 +25,7 @@ public class Robot {
         this.velocity = new Vec2D();
         this.acceleration = new Vec2D();
         this.communicationDistance = 1000;
-        this.speedLimit = 5;
+        this.speedLimit = 5.0;
         this.springs = new ArrayList<>();
     }
 
@@ -113,6 +113,10 @@ public class Robot {
         springs.removeIf(spring -> spring.checkRobots(this, robot));
     }
 
+    public void removeAllSprings() {
+        this.springs.clear();
+    }
+
     public boolean checkSprings(Robot robot) {
         for (Spring spring : springs) {
             if (spring.checkRobots(this, robot)) {
@@ -120,6 +124,15 @@ public class Robot {
             }
         }
         return false;
+    }
+
+    public Spring findSpring(Robot robot) {
+        for (Spring spring : springs) {
+            if (spring.checkRobots(this, robot)) {
+                return spring;
+            }
+        }
+        return null;
     }
 
     public void move() {

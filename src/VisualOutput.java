@@ -24,7 +24,14 @@ class VisualOutput extends JComponent {
 
     public void paintComponent(Graphics g) {
         Graphics2D g2d = (Graphics2D) g;
-        g2d.drawRect(50, 50, 500, 500);
+
+        // draw world boundary //
+        WorldBoundary worldBoundary = world.getWorldBoundary();
+        int minX = worldBoundary.getMinX();
+        int minY = worldBoundary.getMinY();
+        int width = worldBoundary.getWidth();
+        int height = worldBoundary.getHeight();
+        g2d.drawRect(minX, minY, width, height);
 
         int robotSize = 5;
         if (!robots.isEmpty()) {
@@ -57,7 +64,8 @@ class VisualOutput extends JComponent {
                     }
                     Robot[] springRobots = spring.getRobots();
                     int distance = (int) world.getRobotSeparationDistance(springRobots[0], springRobots[1]);
-                    Color lineColor = getLineColor(distance, robot.getCommunicationDistance());
+//                    Color lineColor = getLineColor(distance, spring.getNatLength() * 2);
+                    Color lineColor = getSpringColor(distance, spring);
                     g2d.setColor(lineColor);
                     g2d.drawLine((int) springRobots[0].getPosX(),(int) springRobots[0].getPosY(), (int) springRobots[1].getPosX(), (int) springRobots[1].getPosY());
 
@@ -76,6 +84,22 @@ class VisualOutput extends JComponent {
         else {
             return new Color((int) (255 * normalisedDistance), 255, 0);
         }
+    }
+
+    private Color getSpringColor(int distance, Spring spring) {
+        double natLength = spring.getNatLength();
+        double ratio = distance / natLength;
+
+        if (distance <= natLength) {
+            return new Color((int) (255 - (255 * ratio)), (int) (255 * ratio), 0);
+        } else {
+            if (ratio > 2) {
+                return new Color(255, 0, 0);
+            } else {
+                return new Color((int) (255 * (ratio - 1)), (int) (255 - (255 * (ratio - 1))), 0);
+            }
+        }
+
     }
 
 }
