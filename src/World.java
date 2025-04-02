@@ -135,9 +135,9 @@ public class World {
 
     public void buildSpringMesh(ArrayList<Robot> robots) {
         // spring constants (for initial testing) //
-        double naturalSpringLength = 100.0;
-        double springStiffness = 0.1;
-        double springDamping = 0.3;
+        double naturalSpringLength = Variables.SPRING_LENGTH;
+        double springStiffness = Variables.SPRING_STIFFNESS;
+        double springDamping = Variables.SPRING_DAMPING;
 
         // remove all existing springs //
         for (Robot robot : robots) {

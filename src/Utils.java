@@ -29,4 +29,14 @@ public class Utils {
     public static double clampDouble(double value, double min, double max) {
         return Math.max(min, Math.min(max, value));
     }
+
+    public static boolean checkLineIntersection(Line l1, Line l2) {
+        if (l1.getSlope() == l2.getSlope()) {
+            return false;
+        }
+
+        // check if intersects segment //
+
+        return false;
+    }
 }

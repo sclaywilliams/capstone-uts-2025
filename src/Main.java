@@ -10,11 +10,11 @@ public class Main {
     // main //
     public static void main(String[] args) {
         World world = new World();
-        world.createRobots(1, 2, 50, 200);
+        world.createRobots(5, 5, 50, 200);
         ArrayList<Robot> robots = world.getRobots();
 
         // move robots //
-        virtualSpringMesh(robots, world, 20);
+        virtualSpringMesh(robots, world, 1000);
 
         // draw robots //
         JFrame frame = new JFrame();
@@ -72,6 +72,9 @@ public class Main {
         // accel = (stiffness * (currentSpringLength − naturalSpringLength) * unitVec(originRobot -> connectedRobot)) − (damping * velocity)
 
         for (int i = 0; i < iterations; i++) {
+            double entropy = 0.0;
+//            Vec2D entropyVector = new Vec2D(0.0, 0.0);
+
             world.buildSpringMesh(robots);
             for (Robot robot : robots) {
                 ArrayList<Robot> localRobots = world.getLocalRobots(robot, robots);
@@ -84,10 +87,22 @@ public class Main {
                     // TODO: world boundary force
                     // obstacle avoidance //
                     Vec2D worldBoundaryForce = calculateWorldBoundaryForce(robot, world);
+
+                    // calculate total entropy //
+                    entropy += springForce.getLength();
+//                    entropyVector = Vec2D.add(entropyVector, springForce);
                 }
                 robot.move();
             }
+            System.out.println("Entropy: " + entropy);
+//            System.out.println("EntropyVector: " + entropyVector);
+
+            if (entropy < 5000) {
+                System.out.println("Reached Equilibrium at " + iterations + " iterations");
+                return;
+            }
         }
+        System.out.println("Did not reach equilibrium after " + iterations + " iterations...");
     }
 
     public static Vec2D calculateSpringForce(Robot r1, Robot r2, World world) {

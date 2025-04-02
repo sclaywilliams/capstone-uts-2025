@@ -103,6 +103,13 @@ public class Robot {
         this.velocity = Vec2D.add(velocity, this.velocity);
     }
 
+    public void stopRobot() {
+        this.acceleration = new Vec2D();
+        this.velocity = new Vec2D();
+    }
+
+    // springs //
+
     public void addSpring(Spring spring) {
         if (!this.springs.contains(spring)) {
             this.springs.add(spring);
@@ -110,11 +117,15 @@ public class Robot {
     }
 
     public void removeSpring(Robot robot) {
-        springs.removeIf(spring -> spring.checkRobots(this, robot));
+        boolean removed = springs.removeIf(spring -> spring.checkRobots(this, robot));
+        if (removed) {
+            stopRobot();
+        }
     }
 
     public void removeAllSprings() {
         this.springs.clear();
+        stopRobot();
     }
 
     public boolean checkSprings(Robot robot) {
