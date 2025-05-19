@@ -6,16 +6,29 @@ public class World {
 
     private WorldBoundary worldBoundary;
     private ArrayList<Robot> robots;
-    
+    private ArrayList<Obstacle> obstacles;
+    public int width;
+    public int height;
+    public int margin;
+
     // constructors //
 
     public World(ArrayList<Robot> robots) {
         this.worldBoundary = new WorldBoundary();
         this.robots = robots;
+        this.obstacles = new ArrayList<>();
+        this.width = 500;
+        this.height = 500;
+        this.margin = 100;
     }
 
     public World() {
         this.worldBoundary = new WorldBoundary();
+        this.robots = new ArrayList<>();
+        this.obstacles = new ArrayList<>();
+        this.width = 500;
+        this.height = 500;
+        this.margin = 100;
     }
 
     // getters //
@@ -28,23 +41,38 @@ public class World {
         return robots;
     }
 
+    public ArrayList<Obstacle> getObstacles() {
+        return obstacles;
+    }
+
     // setters //
 
     public void setWorldBoundary(WorldBoundary worldBoundary) {
         this.worldBoundary = worldBoundary;
     }
-    
+
+    public void setObstacles(ArrayList<Obstacle> obstacles) {
+        this.obstacles = obstacles;
+    }
+
+    public void addObstacle(Obstacle obstacle) {
+        obstacles.add(obstacle);
+    }
+
+    public void addRobot(Robot robot) {
+        robots.add(robot);
+    }
+
     // helpers //
 
     // creates and places robots
-    public void createRobots(int rows, int columns, int spacing, int margin) {
+    public void createRobots(int rows, int columns, int spacing, int margin, boolean randomNudge) {
         ArrayList<Robot> robots = new ArrayList<Robot>();
         int robotId = 0;
         for (int row = 0; row < rows; row++) {
             for (int column = 0; column < columns; column++) {
-                int randomNudge = (int) (Math.random() * 10);
-//                randomNudge = 0;
-                Robot robot = new Robot(robotId, margin + spacing * row + randomNudge, margin + spacing * column + randomNudge);
+                int randomNudgeValue = randomNudge ? (int) (Math.random() * 10) : 0;
+                Robot robot = new Robot(robotId, margin + spacing * row + randomNudgeValue, margin + spacing * column + randomNudgeValue);
                 robots.add(robot);
                 robotId++;
             }
@@ -96,7 +124,7 @@ public class World {
         }
         return localRobots;
     }
-    
+
     // used to sum vectors of local robots contained within "communicationDistance"
     public double[] getLocalVectorSum(Robot origin, ArrayList<Robot> robots, double communicationDistance) {
         double[] vectorSum = new double[2];
@@ -106,10 +134,10 @@ public class World {
                 vectorSum[1] += origin.getPosY() - robot.getPosY();
             }
         }
-        
+
         return vectorSum;
     }
-    
+
     public double[] getWeightedLocalVectorSum(Robot origin, ArrayList<Robot> robots, double communicationDistance) {
         double[] weightedVectorSum = new double[2];
 
@@ -148,7 +176,7 @@ public class World {
         for (Robot originRobot : robots) {
             for (Robot destinationRobot : robots) {
                 // skip same robot //
-                if (destinationRobot == originRobot) {
+                if (destinationRobot.getId() == originRobot.getId()) {
                     continue;
                 }
 
@@ -169,26 +197,12 @@ public class World {
                     // get vector angle //
                     Vec2D ab = getSeparationVector(originRobot, middleRobot);
                     Vec2D bc = getSeparationVector(destinationRobot, middleRobot);
-                    double angle = Vec2D.getAngle(ab, bc);
-
-//                    System.out.println("\nOrigin: " + originRobot);
-//                    System.out.println("Destination: " + destinationRobot);
-//                    System.out.println("Middle: " + middleRobot);
-//
-//                    System.out.println("Angle (radians): " + angle);
-//                    System.out.println("Angle (degrees): " + Math.toDegrees(angle));
+                    double angle = Vec2D.getAngle(ab, bc, "dot");
 
                     // remove spring if obtuse angle is found //
                     if (Math.toDegrees(angle) > 90 && Math.toDegrees(angle) < 270) {
-//                        originRobot.removeSpring(destinationRobot);
-//                        destinationRobot.removeSpring(originRobot);
-//                        System.out.println("Removed:");
-//                        System.out.println(originRobot + "\n" + destinationRobot + "\n-----");
                         obtuseAngleFound = true;
-                        continue;
                     }
-//                    System.out.println("Angle (radians): " + angle);
-//                    System.out.println("Angle (degrees): " + Math.toDegrees(angle));
                 }
                 // if all angles acute, add spring //
                 if (!obtuseAngleFound) {
@@ -199,10 +213,23 @@ public class World {
                             springStiffness,
                             springDamping
                     );
+                    // check if spring intersects object //
+                    Line springLine = spring.getLine();
+                    if (this.checkObstacleIntersection(springLine)) {
+                        // TODO: perform impedance check //
+                        double transmissionPower = Variables.TRANSMISSION_POWER;
+                        double totalGain = Variables.GAIN;
+                        double frequency = Variables.FREQUENCY;
+
+                        if (calculatePathSignalStrength(springLine, transmissionPower, frequency, totalGain) < Variables.MINIMUM_SIGNAL_STRENGTH) {
+                            continue;
+                        }
+                        //continue; // temp solution //
+                    }
+
+                    // add connecting spring to robots //
                     originRobot.addSpring(spring);
                     destinationRobot.addSpring(spring);
-//                    System.out.println("Added Spring: ");
-//                    System.out.println(originRobot + "\n" + destinationRobot + "\n-----");
                 }
             }
         }
@@ -215,5 +242,140 @@ public class World {
         return new Vec2D(0, 0);
 
     }
+
+    /**
+     * getMinimumObstacleDistance
+     *
+     * @param robot robot to check distances
+     * @return distance to nearest obstacle
+     */
+    public double getMinimumObstacleDistance(Robot robot) {
+        double minDistance = Double.MAX_VALUE;
+        for (Obstacle obstacle : obstacles) {
+            for (Line edge : obstacle.getEdges()) {
+                double distance = edge.getDistanceToPoint(robot.getPosition());
+                if (distance < minDistance) {
+                    minDistance = distance;
+                }
+            }
+        }
+        return minDistance;
+    }
+
+    /**
+     * getFutureMinimumObstacleDistance
+     *
+     * @param robot robot to check future movement distances
+     * @return distance to nearest obstacle
+     */
+    public double getFutureMinimumObstacleDistance(Robot robot, Vec2D force) {
+        double minDistance = Double.MAX_VALUE;
+        Vec2D futurePosition = robot.getFuturePosition(force);
+        for (Obstacle obstacle : obstacles) {
+            for (Line edge : obstacle.getEdges()) {
+                double distance = edge.getDistanceToPoint(futurePosition);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                }
+            }
+        }
+        return minDistance;
+    }
+
+    public Vec2D getClosestIntersectionVector(Line line) {
+        Vec2D closestIntersectionVector = null;
+
+        for (Obstacle obstacle : obstacles) {
+            for (Line edge : obstacle.getEdges()) {
+                if (!line.intersects(edge)) {
+                    continue;
+                }
+
+                Vec2D intersectionPoint = line.findIntersectionPoint(edge);
+                Line intersectionLine = new Line(line.getStart(), intersectionPoint);
+
+                if (closestIntersectionVector == null || intersectionLine.getLength() < closestIntersectionVector.getLength()) {
+                    closestIntersectionVector = intersectionLine.getVec();
+                }
+            }
+        }
+        return closestIntersectionVector;
+    }
+
+    public boolean checkIfContainedByObstacle(Vec2D point) {
+        for (Obstacle obstacle : obstacles) {
+            if (obstacle.isEnclosed() && obstacle.contains(point)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean checkObstacleIntersection(Line line) {
+        for (Obstacle obstacle : obstacles) {
+            if (obstacle.intersects(line)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean checkFutureSignalStrength(Robot robot, Vec2D force) {
+        Vec2D futurePosition = robot.getFuturePosition(force);
+        double predictedSignalStrength = calculateFutureMaximumSignalStrengthFromRobot(robot, futurePosition);
+
+        return predictedSignalStrength >= Variables.MINIMUM_SIGNAL_STRENGTH;
+    }
+
+    public double calculateMaximumSignalStrength(Vec2D point) {
+        double maxSignalStrength = 0;
+
+        double transmissionPower = Variables.TRANSMISSION_POWER;
+        double totalGain = Variables.GAIN;
+        double frequency = Variables.FREQUENCY;
+
+        for (Robot robot : robots) {
+            Line path = new Line(point, robot.getPosition());
+            double signalStrength = calculatePathSignalStrength(path, transmissionPower, frequency, totalGain);
+            if (signalStrength > maxSignalStrength) {
+                maxSignalStrength = signalStrength;
+            }
+        }
+        return maxSignalStrength;
+    }
+
+    public double calculateFutureMaximumSignalStrengthFromRobot(Robot robot, Vec2D futurePosition) {
+        double maxSignalStrength = 0;
+
+        double transmissionPower = Variables.TRANSMISSION_POWER;
+        double totalGain = Variables.GAIN;
+        double frequency = Variables.FREQUENCY;
+
+        for (Robot neighbour : robots) {
+            if (neighbour.getId() == robot.getId()) {
+                continue;
+            }
+            Line path = new Line(neighbour.getPosition(), futurePosition);
+            double signalStrength = calculatePathSignalStrength(path, transmissionPower, frequency, totalGain);
+            if (signalStrength > maxSignalStrength) {
+                maxSignalStrength = signalStrength;
+            }
+        }
+        return maxSignalStrength;
+    }
+
+    public double calculatePathSignalStrength(Line path, double transmissionPower, double frequency, double totalGain) {
+        double attenuation = 0;
+
+        for (Obstacle obstacle : obstacles) {
+            if (obstacle.intersects(path)) {
+                attenuation += Utils.getAttenuation(obstacle.getMaterial());
+            }
+        }
+        double freeSpacePathLoss = Utils.calculateFSPL(path.getLength(), frequency, totalGain);
+
+        return transmissionPower - freeSpacePathLoss - attenuation;
+    }
+
 
 }

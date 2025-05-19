@@ -61,6 +61,9 @@ public class Vec2D {
 
     public Vec2D getUnitVector() {
         double length = getLength();
+        if (length == 0) {
+            return new Vec2D(0, 0);
+        }
         return new Vec2D(this.x / length, this.y / length);
     }
 
@@ -79,6 +82,9 @@ public class Vec2D {
     }
 
     public static Vec2D multiplyMagnitude(Vec2D v1, double magnitude) {
+        if (v1.getX() == 0 && v1.getY() == 0) {
+            return v1;
+        }
         return new Vec2D(v1.getX() * magnitude, v1.getY() * magnitude);
     }
 
@@ -90,8 +96,17 @@ public class Vec2D {
         return v1.getX() * v2.getX() + v1.getY() * v2.getY();
     }
 
-    public static double getAngle(Vec2D v1, Vec2D v2) {
-        return Math.acos(dot(v1, v2)/(v1.getLength()*v2.getLength()));
+    public static double det(Vec2D v1, Vec2D v2) {
+        return v1.getX() * v2.getX() - v1.getY() * v2.getY();
+    }
+
+    // returns angle in radians //
+    public static double getAngle(Vec2D v1, Vec2D v2, String type) {
+        if (type.equals("dot")) {
+            return Math.acos(dot(v1, v2) / (v1.getLength() * v2.getLength()));
+        } else if (type.equals("det")) {
+            return Math.atan2(det(v1, v2), dot(v1, v2));
+        } else return 0;
     }
 
     @Override
