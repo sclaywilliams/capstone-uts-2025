@@ -48,6 +48,10 @@ public class Spring {
         return robots[0] == r1 && robots[1] == r2 || robots[0] == r2 && robots[1] == r1;
     }
 
+    public double getLength() {
+        return Utils.getDistanceBetweenPoints(robots[0].getPosition(), robots[1].getPosition());
+    }
+
     public Line getLine() {
         return new Line(this.robots[0].getPosition(), this.robots[1].getPosition());
     }

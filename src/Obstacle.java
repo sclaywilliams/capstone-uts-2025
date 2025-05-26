@@ -48,6 +48,10 @@ public class Obstacle {
         double x = position.getX();
         double y = position.getY();
 
+        double doorWidth = 30;
+        double widthOrientation = width / Math.abs(width);
+        double heightOrientation = height / Math.abs(height);
+
         switch (shape) {
             case "rectangle":
                 vertices.add(position);
@@ -79,15 +83,22 @@ public class Obstacle {
                 vertices.add(new Vec2D(x - width/2, y - height/2));
                 vertices.add(new Vec2D(x + width/2, y - height/2));
                 vertices.add(new Vec2D(x + width/2, y + height/2));
-                vertices.add(new Vec2D(x, y + height/2));
+                vertices.add(new Vec2D(x - width/2 + doorWidth * widthOrientation, y + height/2));
                 break;
             case "office2":
-                vertices.add(new Vec2D(x - width/4, y + height/2));
+                vertices.add(new Vec2D(x - (doorWidth * 2 * widthOrientation)/2, y + height/2));
                 vertices.add(new Vec2D(x - width/2, y + height/2));
                 vertices.add(new Vec2D(x - width/2, y - height/2));
                 vertices.add(new Vec2D(x + width/2, y - height/2));
                 vertices.add(new Vec2D(x + width/2, y + height/2));
-                vertices.add(new Vec2D(x + width/4, y + height/2));
+                vertices.add(new Vec2D(x + (doorWidth * 2 * widthOrientation)/2, y + height/2));
+                break;
+            case "office3":
+                vertices.add(new Vec2D(x + width/2, y + height/2));
+                vertices.add(new Vec2D(x - width/2, y + height/2));
+                vertices.add(new Vec2D(x - width/2, y - height/2));
+                vertices.add(new Vec2D(x + width/2, y - height/2));
+                vertices.add(new Vec2D(x + width/2, y + height/2 - doorWidth * heightOrientation));
                 break;
         }
         return vertices;

@@ -1,3 +1,5 @@
+import jdk.jshell.Snippet;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
@@ -12,6 +14,8 @@ class VisualOutput extends JComponent {
     private final World world;
     private ArrayList<Robot> robots;
     private ArrayList<Obstacle> obstacles;
+    private boolean showHeatmap;
+    private Statistics statistics;
 
     // constructors //
 
@@ -19,10 +23,12 @@ class VisualOutput extends JComponent {
         this.world = new World();
     }
 
-    public VisualOutput(World world) {
+    public VisualOutput(World world, boolean showHeatmap, Statistics statistics) {
         this.world = world;
         this.robots = world.getRobots();
         this.obstacles = world.getObstacles();
+        this.showHeatmap = showHeatmap;
+        this.statistics = statistics;
     }
 
     // main drawing function //
@@ -34,8 +40,6 @@ class VisualOutput extends JComponent {
         boolean customSpringColor = false;
 
         boolean showLabel = false;
-        boolean showHeatmap = true;
-
 
         // draw world boundary //
         //                WorldBoundary worldBoundary = world.getWorldBoundary();
@@ -48,6 +52,11 @@ class VisualOutput extends JComponent {
         // draw heatmap //
         if (showHeatmap) {
             drawHeatmap(world, g2d);
+        }
+
+        // show statistics //
+        if (statistics.isCalculated) {
+            showStatistics(g2d);
         }
 
         // draw obstacles //
@@ -63,7 +72,7 @@ class VisualOutput extends JComponent {
             for (Robot robot : robots) {
 
                 // draw robot //
-                Color robotColor = customRobotColor ? getRobotColor(robot, g2d) : Color.RED;
+                Color robotColor = customRobotColor ? getRobotColor(robot, g2d) : Color.BLUE;
                 g2d.setColor(robotColor);
                 g2d.drawOval((int) robot.getPosX() - robotSize / 2, (int) robot.getPosY() - robotSize / 2, robotSize, robotSize);
                 g2d.fillOval((int) robot.getPosX() - robotSize / 2, (int) robot.getPosY() - robotSize / 2, robotSize, robotSize);
@@ -140,9 +149,14 @@ class VisualOutput extends JComponent {
         return getThreeColorGradient(closestColor, midColor, furthestColor, normalisedDistance);
     }
 
-    private Color getSignalHeatmapColor(double signalStrength, double maximumSignalStrength, double minimumSignalStrength) {
-        double signalPercent = (signalStrength - minimumSignalStrength) / (maximumSignalStrength - minimumSignalStrength);
+    private Color getSignalHeatmapColor(double signalStrength) {
+        boolean useAcceptable = true;
+        double minSignalStrength = useAcceptable ? Variables.ACCEPTABLE_SIGNAL_STRENGTH : Variables.MINIMUM_SIGNAL_STRENGTH;
+        double maxSignalStrength = Variables.MAXIMUM_SIGNAL_STRENGTH;
+
+        double signalPercent = (signalStrength - minSignalStrength) / (maxSignalStrength - minSignalStrength);
         double normalisedSignalStrength = 1 - Utils.clampDouble(signalPercent, 0.0, 1.0);
+
         Color closestColor = Color.GREEN;
         Color midColor = Color.YELLOW;
         Color furthestColor = Color.RED;
@@ -233,10 +247,18 @@ class VisualOutput extends JComponent {
 
                 // colour pixel according to distance //
 //                Color pixelColor = getHeatmapColor(minDistance, 100);
-                Color pixelColor = getSignalHeatmapColor(signalStrength, 120, 70);
+                Color pixelColor = getSignalHeatmapColor(signalStrength);
                 g2d.setColor(pixelColor);
                 g2d.drawOval(i, j, 1, 1);
             }
+        }
+    }
+
+    private void showStatistics(Graphics2D g2d) {
+        g2d.setColor(Color.BLACK);
+        String[] statisticsText = statistics.toString().split("\n");
+        for (int i = 0; i < statisticsText.length; i++) {
+            g2d.drawString(statisticsText[i], 100, 620 + i * 20);
         }
     }
 

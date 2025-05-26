@@ -45,7 +45,12 @@ public class Utils {
     }
 
     public static double calculateFSPL(double distance, double frequency, double totalGain) {
-        return 20 * Math.log10(distance) + 20 * Math.log10(frequency) + 20 * Math.log10(4 * Math.PI / Variables.LIGHT_SPEED) + totalGain;
+        return 20 * Math.log10(distance) + 20 * Math.log10(frequency * 1e+9) + 20 * Math.log10((4 * Math.PI) / Variables.LIGHT_SPEED) - totalGain;
+    }
+
+    public static double calculateMaxDistanceFromFSPL(double maxAllowedLoss, double frequency, double totalGain ) {
+        double dirtyExponent = ( maxAllowedLoss - 20 * Math.log10(frequency * 1e+9) - 20 * Math.log10((4 * Math.PI) / Variables.LIGHT_SPEED) + totalGain ) / 20;
+        return Math.pow(10, dirtyExponent);
     }
 
     public static double getAttenuation(String material) {

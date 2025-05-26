@@ -66,11 +66,14 @@ public class World {
     // helpers //
 
     // creates and places robots
-    public void createRobots(int rows, int columns, int spacing, int margin, boolean randomNudge) {
-        ArrayList<Robot> robots = new ArrayList<Robot>();
+    public void createRobots(int numRobots, int rows, int columns, int spacing, int margin, boolean randomNudge) {
+        ArrayList<Robot> robots = new ArrayList<>();
         int robotId = 0;
         for (int row = 0; row < rows; row++) {
             for (int column = 0; column < columns; column++) {
+                if (numRobots > 0 && robots.size() > numRobots) {
+                    break;
+                }
                 int randomNudgeValue = randomNudge ? (int) (Math.random() * 10) : 0;
                 Robot robot = new Robot(robotId, margin + spacing * row + randomNudgeValue, margin + spacing * column + randomNudgeValue);
                 robots.add(robot);
@@ -167,6 +170,13 @@ public class World {
         double springStiffness = Variables.SPRING_STIFFNESS;
         double springDamping = Variables.SPRING_DAMPING;
 
+        double signalSpringLength = calculateMaxSpringSignalDistance(
+                Variables.ACCEPTABLE_SIGNAL_STRENGTH,
+                Variables.TRANSMISSION_POWER,
+                Variables.FREQUENCY,
+                Variables.GAIN);
+//        System.out.println(signalSpringLength);
+
         // remove all existing springs //
         for (Robot robot : robots) {
             robot.removeAllSprings();
@@ -210,18 +220,21 @@ public class World {
                             originRobot,
                             destinationRobot,
                             naturalSpringLength,
+//                            signalSpringLength / 10,
                             springStiffness,
                             springDamping
                     );
                     // check if spring intersects object //
                     Line springLine = spring.getLine();
                     if (this.checkObstacleIntersection(springLine)) {
-                        // TODO: perform impedance check //
+                        if (!Variables.USE_E2VSM) {
+                            continue;
+                        }
                         double transmissionPower = Variables.TRANSMISSION_POWER;
                         double totalGain = Variables.GAIN;
                         double frequency = Variables.FREQUENCY;
 
-                        if (calculatePathSignalStrength(springLine, transmissionPower, frequency, totalGain) < Variables.MINIMUM_SIGNAL_STRENGTH) {
+                        if (calculatePathSignalStrength(springLine, transmissionPower, frequency, totalGain) < Variables.ACCEPTABLE_SIGNAL_STRENGTH) {
                             continue;
                         }
                         //continue; // temp solution //
@@ -324,11 +337,11 @@ public class World {
         Vec2D futurePosition = robot.getFuturePosition(force);
         double predictedSignalStrength = calculateFutureMaximumSignalStrengthFromRobot(robot, futurePosition);
 
-        return predictedSignalStrength >= Variables.MINIMUM_SIGNAL_STRENGTH;
+        return predictedSignalStrength >= Variables.ACCEPTABLE_SIGNAL_STRENGTH;
     }
 
     public double calculateMaximumSignalStrength(Vec2D point) {
-        double maxSignalStrength = 0;
+        double maxSignalStrength = -Double.MAX_VALUE;
 
         double transmissionPower = Variables.TRANSMISSION_POWER;
         double totalGain = Variables.GAIN;
@@ -337,6 +350,9 @@ public class World {
         for (Robot robot : robots) {
             Line path = new Line(point, robot.getPosition());
             double signalStrength = calculatePathSignalStrength(path, transmissionPower, frequency, totalGain);
+            if (path.getLength() == 0) {
+                signalStrength = -30; // default max value if right on transmitter //
+            }
             if (signalStrength > maxSignalStrength) {
                 maxSignalStrength = signalStrength;
             }
@@ -345,7 +361,7 @@ public class World {
     }
 
     public double calculateFutureMaximumSignalStrengthFromRobot(Robot robot, Vec2D futurePosition) {
-        double maxSignalStrength = 0;
+        double maxSignalStrength = -Double.MAX_VALUE;
 
         double transmissionPower = Variables.TRANSMISSION_POWER;
         double totalGain = Variables.GAIN;
@@ -368,13 +384,25 @@ public class World {
         double attenuation = 0;
 
         for (Obstacle obstacle : obstacles) {
-            if (obstacle.intersects(path)) {
-                attenuation += Utils.getAttenuation(obstacle.getMaterial());
+            for (Line edge : obstacle.getEdges()) {
+                if (edge.intersects(path)) {
+                    attenuation += Utils.getAttenuation(obstacle.getMaterial());
+                }
             }
         }
         double freeSpacePathLoss = Utils.calculateFSPL(path.getLength(), frequency, totalGain);
 
+//        System.out.println("PathLoss: " + freeSpacePathLoss);
+//        System.out.println("Attenuation: " + attenuation);
+//        System.out.println("Transmission power: " + transmissionPower);
+//        System.out.println("Signal: " + (transmissionPower - freeSpacePathLoss - attenuation) + "\n");
+
         return transmissionPower - freeSpacePathLoss - attenuation;
+    }
+
+    public double calculateMaxSpringSignalDistance(double minimumAcceptableSignal, double transmissionPower, double frequency, double totalGain) {
+        double maxAllowedLoss = transmissionPower - minimumAcceptableSignal;
+        return Utils.calculateMaxDistanceFromFSPL(maxAllowedLoss, frequency, totalGain);
     }
 
 

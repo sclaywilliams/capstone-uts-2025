@@ -1,97 +1,324 @@
+import jdk.jshell.Snippet;
+
 import javax.swing.*;
 import java.awt.geom.Line2D;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Map;
 
 public class Main {
 
     // main //
     public static void main(String[] args) {
-        // basic, medium, complex //
-        String worldType = "complex";
-        int iterations = 2000;
+
+        boolean runTests = true;
+
+        if (runTests) {
+            try {
+                runTestProgram();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else {
+            // empty, basic, medium, complex, maximum //
+            String worldType = "complex";
+            boolean showStatistics = true;
+            boolean showHeatmap = true;
+            int iterations = 2000;
+            int robotMargin = 10;
+            boolean randomNudge = false;
+            String material = "concrete";
+
+            World world = new World();
+            world.createRobots(-1, 5, 10, 10, world.margin + robotMargin, randomNudge);
+            //            world.createRobots(-1, 15, 10, 10, world.margin + robotMargin, randomNudge);
+            //        world.createRobots(36, 6, 6, 10, world.margin + robotMargin, randomNudge);
+            ArrayList<Robot> robots = world.getRobots();
+
+            // World Boundary //
+            ArrayList<Vec2D> points = new ArrayList<>();
+            points.add(new Vec2D(world.margin, world.margin));
+            points.add(new Vec2D(world.margin + world.width, world.margin));
+            points.add(new Vec2D(world.margin + world.width, world.margin + world.height));
+            points.add(new Vec2D(world.margin, world.margin + world.height));
+            Obstacle worldBoundary = new Obstacle(points);
+            world.addObstacle(worldBoundary);
+
+            switch (worldType) {
+                case "basic":
+                    world.addObstacle(new Obstacle(new Vec2D(275, 275), 50, 50, "rectangle", false, material));
+                    world.addObstacle(new Obstacle(new Vec2D(375, 275), 50, 50, "rectangle", false, material));
+                    world.addObstacle(new Obstacle(new Vec2D(275, 375), 50, 50, "rectangle", false, material));
+                    world.addObstacle(new Obstacle(new Vec2D(375, 375), 50, 50, "rectangle", false, material));
+                    break;
+
+                case "medium":
+                    // stars
+                    world.addObstacle(new Obstacle(new Vec2D(300, 250), 60, 80, "star", false, material));
+                    world.addObstacle(new Obstacle(new Vec2D(450, 350), 120, 160, "star", false, material));
+                    world.addObstacle(new Obstacle(new Vec2D(300, 450), 90, 120, "star", false, material));
+                    // triangles
+                    world.addObstacle(new Obstacle(new Vec2D(500, 200), 50, 50, "triangle", false, material));
+                    world.addObstacle(new Obstacle(new Vec2D(500, 500), 50, -50, "triangle", false, material));
+                    world.addObstacle(new Obstacle(new Vec2D(200, 370), 50, 50, "triangle", false, material));
+                    break;
+
+                case "complex":
+                    // row 1
+                    world.addObstacle(new Obstacle(new Vec2D(300, 300), 100, 100, "office2", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(400, 300), 100, -100, "office2", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(500, 300), 100, -100, "office1", true, material));
+                    // row 2
+                    world.addObstacle(new Obstacle(new Vec2D(300, 450), 100, -100, "office2", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(400, 450), -100, -100, "office1", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(500, 450), -100, 100, "office1", true, material));
+                    break;
+                case "maximum":
+                    // edges //
+
+                    // left edge
+                    world.addObstacle(new Obstacle(new Vec2D(130, 295), 60, -50, "office3", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(130, 350), 60, -60, "office3", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(130, 410), 60, -60, "office3", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(130, 470), 60, -60, "office3", true, material));
+                    // bottom left corner
+                    world.addObstacle(new Obstacle(new Vec2D(130, 550), 60, -100, "office3", true, material));
+                    // bottom row
+                    world.addObstacle(new Obstacle(new Vec2D(190, 575), 60, -50, "office1", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(245, 575), 50, -50, "office1", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(295, 575), 50, -50, "office1", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(345, 575), 50, -50, "office1", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(395, 575), 50, -50, "office1", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(445, 575), 50, -50, "office1", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(495, 575), 50, -50, "office1", true, material));
+                    // bottom right corner
+                    world.addObstacle(new Obstacle(new Vec2D(560, 575), 80, -50, "office1", true, material));
+                    // right edge
+                    world.addObstacle(new Obstacle(new Vec2D(575, 525), -50, -50, "office3", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(575, 475), -50, -50, "office3", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(575, 425), -50, -50, "office3", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(575, 375), -50, -50, "office3", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(575, 325), -50, -50, "office3", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(575, 275), -50, -50, "office3", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(575, 225), -50, -50, "office3", true, material));
+                    // top right corner
+                    world.addObstacle(new Obstacle(new Vec2D(540, 150), 120, 100, "office1", true, material));
+                    // top row
+                    world.addObstacle(new Obstacle(new Vec2D(455, 125), 50, 50, "office1", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(405, 125), 50, 50, "office1", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(355, 125), 50, 50, "office1", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(305, 125), 50, 50, "office1", true, material));
+
+                    // middle section //
+
+                    // bottom left corner
+                    world.addObstacle(new Obstacle(new Vec2D(230, 480), -50, 50, "office1", true, material));
+                    // bottom row
+                    world.addObstacle(new Obstacle(new Vec2D(280, 480), -50, 50, "office1", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(330, 480), -50, 50, "office1", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(380, 480), -50, 50, "office1", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(430, 480), -50, 50, "office1", true, material));
+                    // bottom right corner
+                    world.addObstacle(new Obstacle(new Vec2D(480, 480), 50, -50, "office3", true, material));
+                    // right edge
+                    world.addObstacle(new Obstacle(new Vec2D(465, 430), 80, -50, "office3", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(465, 380), 80, -50, "office3", true, material));
+                    world.addObstacle(new Obstacle(new Vec2D(465, 330), 80, -50, "office3", true, material));
+                    // custom top right corner
+                    ArrayList<Vec2D> lP = new ArrayList<>();
+
+                    // break room
+                    world.addObstacle(new Obstacle(new Vec2D(315, 375), 220, -160, "office2", true, material));
+
+
+                    break;
+
+                case "empty":
+                default:
+                    break;
+            }
+
+            // line test //
+            //        Line testLine = new Line(new Vec2D(1, 3), new Vec2D(4, 1));
+            //        Vec2D testPoint = new Vec2D(0, 0);
+            //        System.out.println("Distance: " + testLine.getDistanceToPoint(testPoint));
+
+            // timer //
+            long startTime = System.currentTimeMillis();
+
+            // move robots //
+            //        virtualSpringMesh(robots, world, 100);
+            extendedVirtualSpringMesh(robots, world, iterations, runTests);
+
+            // statistics //
+            long endTime = System.currentTimeMillis();
+            long elapsedTime = endTime - startTime;
+            System.out.println("Elapsed time: " + elapsedTime + " ms");
+            Statistics statistics = new Statistics();
+            if (showStatistics) {
+                statistics = new Statistics(world, iterations);
+                System.out.println(statistics);
+            }
+
+            // draw robots //
+            JFrame frame = new JFrame();
+            frame.setSize(600, 630);
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.getContentPane().add(new VisualOutput(world, showHeatmap, statistics));
+            frame.setVisible(true);
+        }
+    }
+
+    // testing and results //
+
+    public static void runTestProgram() throws IOException {
+        boolean showStatistics = true;
+        boolean showHeatmap = true;
+        int iterations = 0;
         int robotMargin = 10;
         boolean randomNudge = false;
-        String material = "drywall";
+        String material = "concrete";
+        Variables.USE_E2VSM = true;
+
+        String[] worldTypes = {"empty", "basic", "medium", "complex", "maximum"};
+        int[] robotRows = {5, 10, 15, 20};
+
+        // create and open file //
+        BufferedWriter writer = new BufferedWriter(new FileWriter("statistics_initial_state_e2vsm.txt"));
+
+        for (String worldType : worldTypes) {
+            for (int numRows : robotRows) {
+
+                World world = new World();
+                world.createRobots(-1, numRows, 10, 10, world.margin + robotMargin, randomNudge);
+                ArrayList<Robot> robots = world.getRobots();
+
+                // World Boundary //
+                ArrayList<Vec2D> points = new ArrayList<>();
+                points.add(new Vec2D(world.margin, world.margin));
+                points.add(new Vec2D(world.margin + world.width, world.margin));
+                points.add(new Vec2D(world.margin + world.width, world.margin + world.height));
+                points.add(new Vec2D(world.margin, world.margin + world.height));
+                Obstacle worldBoundary = new Obstacle(points);
+                world.addObstacle(worldBoundary);
+
+                switch (worldType) {
+                    case "basic":
+                        world.addObstacle(new Obstacle(new Vec2D(275, 275), 50, 50, "rectangle", false, material));
+                        world.addObstacle(new Obstacle(new Vec2D(375, 275), 50, 50, "rectangle", false, material));
+                        world.addObstacle(new Obstacle(new Vec2D(275, 375), 50, 50, "rectangle", false, material));
+                        world.addObstacle(new Obstacle(new Vec2D(375, 375), 50, 50, "rectangle", false, material));
+                        break;
+
+                    case "medium":
+                        // stars
+                        world.addObstacle(new Obstacle(new Vec2D(300, 250), 60, 80, "star", false, material));
+                        world.addObstacle(new Obstacle(new Vec2D(450, 350), 120, 160, "star", false, material));
+                        world.addObstacle(new Obstacle(new Vec2D(300, 450), 90, 120, "star", false, material));
+                        // triangles
+                        world.addObstacle(new Obstacle(new Vec2D(500, 200), 50, 50, "triangle", false, material));
+                        world.addObstacle(new Obstacle(new Vec2D(500, 500), 50, -50, "triangle", false, material));
+                        world.addObstacle(new Obstacle(new Vec2D(200, 370), 50, 50, "triangle", false, material));
+                        break;
+
+                    case "complex":
+                        // row 1
+                        world.addObstacle(new Obstacle(new Vec2D(300, 300), 100, 100, "office2", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(400, 300), 100, -100, "office2", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(500, 300), 100, -100, "office1", true, material));
+                        // row 2
+                        world.addObstacle(new Obstacle(new Vec2D(300, 450), 100, -100, "office2", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(400, 450), -100, -100, "office1", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(500, 450), -100, 100, "office1", true, material));
+                        break;
+                    case "maximum":
+                        // edges //
+
+                        // left edge
+                        world.addObstacle(new Obstacle(new Vec2D(130, 295), 60, -50, "office3", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(130, 350), 60, -60, "office3", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(130, 410), 60, -60, "office3", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(130, 470), 60, -60, "office3", true, material));
+                        // bottom left corner
+                        world.addObstacle(new Obstacle(new Vec2D(130, 550), 60, -100, "office3", true, material));
+                        // bottom row
+                        world.addObstacle(new Obstacle(new Vec2D(190, 575), 60, -50, "office1", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(245, 575), 50, -50, "office1", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(295, 575), 50, -50, "office1", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(345, 575), 50, -50, "office1", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(395, 575), 50, -50, "office1", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(445, 575), 50, -50, "office1", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(495, 575), 50, -50, "office1", true, material));
+                        // bottom right corner
+                        world.addObstacle(new Obstacle(new Vec2D(560, 575), 80, -50, "office1", true, material));
+                        // right edge
+                        world.addObstacle(new Obstacle(new Vec2D(575, 525), -50, -50, "office3", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(575, 475), -50, -50, "office3", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(575, 425), -50, -50, "office3", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(575, 375), -50, -50, "office3", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(575, 325), -50, -50, "office3", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(575, 275), -50, -50, "office3", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(575, 225), -50, -50, "office3", true, material));
+                        // top right corner
+                        world.addObstacle(new Obstacle(new Vec2D(540, 150), 120, 100, "office1", true, material));
+                        // top row
+                        world.addObstacle(new Obstacle(new Vec2D(455, 125), 50, 50, "office1", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(405, 125), 50, 50, "office1", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(355, 125), 50, 50, "office1", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(305, 125), 50, 50, "office1", true, material));
+
+                        // middle section //
+
+                        // bottom left corner
+                        world.addObstacle(new Obstacle(new Vec2D(230, 480), -50, 50, "office1", true, material));
+                        // bottom row
+                        world.addObstacle(new Obstacle(new Vec2D(280, 480), -50, 50, "office1", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(330, 480), -50, 50, "office1", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(380, 480), -50, 50, "office1", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(430, 480), -50, 50, "office1", true, material));
+                        // bottom right corner
+                        world.addObstacle(new Obstacle(new Vec2D(480, 480), 50, -50, "office3", true, material));
+                        // right edge
+                        world.addObstacle(new Obstacle(new Vec2D(465, 430), 80, -50, "office3", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(465, 380), 80, -50, "office3", true, material));
+                        world.addObstacle(new Obstacle(new Vec2D(465, 330), 80, -50, "office3", true, material));
+                        // custom top right corner
+                        ArrayList<Vec2D> lP = new ArrayList<>();
+
+                        // break room
+                        world.addObstacle(new Obstacle(new Vec2D(315, 375), 220, -160, "office2", true, material));
 
 
+                        break;
 
-        World world = new World();
-        world.createRobots(12, 12, 10, world.margin + robotMargin, randomNudge);
-        ArrayList<Robot> robots = world.getRobots();
+                    case "empty":
+                    default:
+                        break;
+                }
 
-        // World Boundary //
-        ArrayList<Vec2D> points = new ArrayList<>();
-        points.add(new Vec2D(world.margin, world.margin));
-        points.add(new Vec2D(world.margin + world.width, world.margin));
-        points.add(new Vec2D(world.margin + world.width, world.margin + world.height));
-        points.add(new Vec2D(world.margin, world.margin + world.height));
-        Obstacle worldBoundary = new Obstacle(points);
-        world.addObstacle(worldBoundary);
+                ArrayList<Statistics> statsArray = extendedVirtualSpringMesh(robots, world, iterations, true);
 
-        switch (worldType) {
-            case "basic":
-                world.addObstacle(new Obstacle(new Vec2D(300, 300), 50, 50, "rectangle", false, material));
-                world.addObstacle(new Obstacle(new Vec2D(400, 300), 50, 50, "rectangle", false, material));
-                world.addObstacle(new Obstacle(new Vec2D(300, 400), 50, 50, "rectangle", false, material));
-                world.addObstacle(new Obstacle(new Vec2D(400, 400), 50, 50, "rectangle", false, material));
-                break;
+                String algorithm = Variables.USE_E2VSM ? "E2VSM" : "EVSM";
 
-            case "medium":
-                // stars
-                world.addObstacle(new Obstacle(new Vec2D(300, 250), 60, 80, "star", false, material));
-                world.addObstacle(new Obstacle(new Vec2D(450, 350), 120, 160, "star", true, material));
-                world.addObstacle(new Obstacle(new Vec2D(300, 450), 90, 120, "star", false, material));
-                // triangles
-                world.addObstacle(new Obstacle(new Vec2D(500, 200), 50, 50, "triangle", false, material));
-                world.addObstacle(new Obstacle(new Vec2D(500, 500), 50, -50, "triangle", false, material));
-                world.addObstacle(new Obstacle(new Vec2D(200, 370), 50, 50, "triangle", false, material));
-                break;
-
-            case "complex":
-                // row 1
-                world.addObstacle(new Obstacle(new Vec2D(300, 300), 100, 100, "office2", true, material));
-                world.addObstacle(new Obstacle(new Vec2D(400, 300), 100, -100, "office2", true, material));
-                world.addObstacle(new Obstacle(new Vec2D(500, 300), 100, -100, "office1", true, material));
-                // row 2
-                world.addObstacle(new Obstacle(new Vec2D(300, 450), 100, -100, "office2", true, material));
-                world.addObstacle(new Obstacle(new Vec2D(400, 450), -100, -100, "office1", true, material));
-                world.addObstacle(new Obstacle(new Vec2D(500, 450), -100, 100, "office1", true, material));
-
-
-
-
-                break;
-
-            case "empty":
-            default:
-                break;
+                writer.write("Algorithm: " + algorithm + " | World Type: " + worldType + " | Robots: " + (numRows * 10) + '\n');
+                writer.write("iterations, averageDistanceToRobot, averageSignalStrength, averageSpringLength, totalCoverage, totalExploration\n");
+                for (Statistics stats : statsArray) {
+                    writer.write(stats.iterations + "," +
+                                 stats.averageDistanceToRobot + "," +
+                                 stats.averageSignalStrength + "," +
+                                 stats.averageSpringLength + "," +
+                                 stats.totalCoverage + "," +
+                                 stats.totalExploration + "\n"
+                                );
+                }
+                writer.write("\n");
+                System.out.println("World Type: " + worldType + " | Robots: " + (numRows * 10) + " | Logged\n");
+            }
         }
-
-        // line test //
-//        Line testLine = new Line(new Vec2D(1, 3), new Vec2D(4, 1));
-//        Vec2D testPoint = new Vec2D(0, 0);
-//        System.out.println("Distance: " + testLine.getDistanceToPoint(testPoint));
-
-        // timer //
-        long startTime = System.currentTimeMillis();
-
-        // move robots //
-//        virtualSpringMesh(robots, world, 100);
-        extendedVirtualSpringMesh(robots, world, iterations);
-
-        // statistics //
-        long endTime = System.currentTimeMillis();
-        long elapsedTime = endTime - startTime;
-        System.out.println("Elapsed time: " + elapsedTime + " ms");
-        Statistics statistics = new Statistics(world);
-        System.out.println(statistics);
-
-        // draw robots //
-        JFrame frame = new JFrame();
-        frame.setSize(600, 630);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.getContentPane().add(new VisualOutput(world));
-        frame.setVisible(true);
+        writer.close();
     }
 
     // robot algorithms //
@@ -185,7 +412,7 @@ public class Main {
      * @param iterations number of iterations in the simulation
      */
 
-    public static void extendedVirtualSpringMesh(ArrayList<Robot> robots, World world, int iterations) {
+    public static ArrayList<Statistics> extendedVirtualSpringMesh(ArrayList<Robot> robots, World world, int iterations, boolean runTests) {
         /** pseudocode
          * calculate distance and bearing to neighbours
          * calculate if edge or interior robot
@@ -197,17 +424,24 @@ public class Main {
          * else if Dobs <= Dmin: apply force as -F
          */
 
-
+        ArrayList<Statistics> statsArray = new ArrayList<>();
 
         for (int i = 0; i < iterations; i++) {
+            // calculate spring mesh //
+            world.buildSpringMesh(robots);
+
+            if (i % 100 == 0) {
+//                System.out.println("Stats at " + i + " iterations");
+//                System.out.println(new Statistics(world, iterations));
+                System.out.println((int) (((double) i / (double) iterations) * 100) + "%");
+                if (runTests) {
+                    statsArray.add(new Statistics(world, i));
+                }
+            }
 
             double totalVelocity = 0.0;
 
-//            System.out.println(1);
-            // calculate spring mesh
-            world.buildSpringMesh(robots);
 
-//            System.out.println(2);
             for (Robot robot : robots) {
                 // calculate distance and bearing to neighbours
 
@@ -217,30 +451,21 @@ public class Main {
                 double[] sweepAngles = robot.calculateEdge();
                 boolean isEdge = sweepAngles[0] != -1;
 //                boolean isEdge = false;
-//                System.out.println(3);
-
-//                if (isEdge) {
-//                    System.out.println("Sweeping " + sweepAngles[0] + " to " + sweepAngles[1]);
-//                }
 
 
                 // if edge: apply fExpl or fExpn as driving force Fd - else: apply 0 force
                 Vec2D drivingForce = isEdge ? robot.calculateExplorationForce(world, sweepAngles) : new Vec2D();
 //                Vec2D drivingForce = isEdge ? robot.calculateExpansionForce() : new Vec2D(); // todo
 
-//                System.out.println(4);
                 // calculate Fsof
                 Vec2D selfOrganisingForce = robot.calculateSelfOrganisingForce();
 
-//                System.out.println(5);
                 // calculate total force
                 Vec2D totalForce = Vec2D.add(selfOrganisingForce, drivingForce);
 
-//                System.out.println("Total Force: " + totalForce);
-
                 // calculate distance to closest obstacle
                 double obstacleDistance = world.getFutureMinimumObstacleDistance(robot, totalForce);
-                boolean willMaintainConnection = world.checkFutureSignalStrength(robot, totalForce);
+                boolean willMaintainConnection = Variables.USE_E2VSM ? world.checkFutureSignalStrength(robot, totalForce) : true;
 
                 // if Dobs > Dmin: apply force as F
                 if (obstacleDistance > Variables.MIN_OBSTACLE_DISTANCE && willMaintainConnection) {
@@ -265,13 +490,18 @@ public class Main {
             }
             double averageVelocity = totalVelocity / robots.size();
 //            System.out.println("Average velocity: " + averageVelocity);
-            if (averageVelocity < 0.5) {
-                System.out.println("Reached equilibrium at " + i + " iterations");
-                return;
+            if (averageVelocity < Variables.MINIMUM_ROBOT_MOVE_THRESHOLD) {
+//                System.out.println("Reached equilibrium at " + i + " iterations");
+                return statsArray;
             }
         }
-        System.out.println("Failed to reach equilibrium after " + iterations + " iterations");
+        // final state //
+        if (runTests) {
+            statsArray.add(new Statistics(world, iterations));
+        }
+//        System.out.println("Failed to reach equilibrium after " + iterations + " iterations");
         // done //
+        return statsArray;
     }
 
 
